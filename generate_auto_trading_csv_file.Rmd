@@ -1,0 +1,138 @@
+---
+title: "Generate Auto Trading csv File"
+author: "chenrujiue"
+date: "2023-05-25"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(timeDate)
+library(lubridate)
+```
+
+Functions Of Time Order Generation
+
+```{r Functions Of Time Order Generation, echo=FALSE}
+gen_time_order <- function(
+    cont = NULL, # Contract Name
+    condi_start_time = paste(toString(Sys.Date()), "21:00:01"), # Orders begin at time, into seconds
+    pos = 1, # positions for every order
+    dire = NULL, # order direction
+    num_orders = 10 # number of orders want to generate
+    ){
+  
+  tradeOrder.colnames <- c("合约","类型","状态","触发条件","买卖","开平","投保","预埋时间","报单价格","报单手数","合约名")
+  
+  if(is.null(cont)){
+    print("You must specify a contract name!")
+    return("error")
+  }else{
+    tradeOrder.cont <- cont
+    tradeOrder.contname <- toupper(cont)
+  }
+  
+  tradeOrder.type <- c("条件单(时间)")
+  
+  tradeOrder.mode <- c("已启动")
+  
+  tradeOrder.condi.pre <- c("行情时间到")
+  tradeOrder.condi.tS <- timeSequence(from = condi_start_time, by = "sec", length.out = num_orders)
+  tradeOrder.condi <- c()
+  for(i in 1:length(tradeOrder.condi.tS)){
+    s = toString(tradeOrder.condi.tS[i])
+    s = substr(s, start = 12, stop = nchar(s))
+    condi = paste0(tradeOrder.condi.pre, s)
+    tradeOrder.condi <- c(tradeOrder.condi, condi)
+  }
+  
+  if(is.null(dire)){
+    print("You must specify a trade direction! ")
+    print("bk for 买开； sk for 卖开； bp for 买平仓； sp for 卖平仓； bpj for 买平今； spj for 卖平今")
+    return("error")
+  }else if(dire=="bk"){
+    tradeOrder.dir <- c("买")
+    tradeOrder.act <- c("开仓")
+  }else if(dire=="sk"){
+    tradeOrder.dir <- c("卖")
+    tradeOrder.act <- c("开仓")
+  }else if(dire=="bp"){
+    tradeOrder.dir <- c("买")
+    tradeOrder.act <- c("平仓")
+  }else if(dire=="sp"){
+    tradeOrder.dir <- c("卖")
+    tradeOrder.act <- c("平仓")
+  }else if(dire=="bpj"){
+    tradeOrder.dir <- c("买")
+    tradeOrder.act <- c("平今")
+  }else if(dire=="spj"){
+    tradeOrder.dir <- c("卖")
+    tradeOrder.act <- c("平今")
+  }
+  
+  tradeOrder.pur <- c("投机")
+  
+  tradeOrder.placetime <- c("08:55:00")
+  
+  tradeOrder.price <- c("对价")
+  
+  tradeOrder.pos <- toString(pos)
+  
+  # Generate Data Frame.
+  # --------------------
+  tradeOrder.df <- data.frame(
+      con = tradeOrder.cont, 
+		  type = tradeOrder.type,
+		  mode = tradeOrder.mode,
+		  condi = tradeOrder.condi,
+		  dir = tradeOrder.dir,
+		  act = tradeOrder.act,
+		  pur = tradeOrder.pur,
+		  time = tradeOrder.placetime,
+		  price = tradeOrder.price,
+		  pos = tradeOrder.pos,
+		  contname = tradeOrder.contname)
+  colnames(tradeOrder.df) <- tradeOrder.colnames
+  
+  return(tradeOrder.df)
+}
+
+```
+
+## OPEN TRADE
+
+```{r test the orders generate function}
+tradeOrder.df <- gen_time_order(
+  cont = "zn2307",
+  condi_start_time = "2023-06-06 21:00:01",
+  pos = 1,
+  dir = "sk",
+  num_orders = 4
+)
+
+# Saving to CSV file.
+filePath <- getwd()
+fileToSaveFileName <- "zn2307_op.csv"
+fileToSave <- file.path(filePath, fileToSaveFileName)
+write.csv(tradeOrder.df, file = fileToSave, row.names = FALSE, fileEncoding = "GB18030", quote = TRUE)
+
+```
+
+## CLOSE TRADE
+
+```{r generate the desired csv file}
+tradeOrder.df <- gen_time_order(
+  cont = "zn2309",
+  condi_start_time = "2023-06-07 14:59:01",
+  pos = 1,
+  dir = "bpj",
+  num_orders = 4
+)
+
+# Saving to CSV file.
+filePath <- getwd()
+fileToSaveFileName <- "zn2307_cl.csv"
+fileToSave <- file.path(filePath, fileToSaveFileName)
+write.csv(tradeOrder.df, file = fileToSave, row.names = FALSE, fileEncoding = "GB18030", quote = TRUE)
+
+```
